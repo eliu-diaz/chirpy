@@ -19,7 +19,7 @@ func main() {
 	handler := http.StripPrefix("/app/", http.FileServer(http.Dir(".")))
 	mux.Handle("/app/", apiCfg.middlewareMetricsInc(handler))
 
-	mux.HandleFunc("/healthz", func(w http.ResponseWriter, r *http.Request) {
+	mux.HandleFunc("GET /api/healthz", func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Add("Content-Type", "text/plain; charset=utf-8")
 		w.WriteHeader(200)
 		_, err := w.Write([]byte("OK"))
@@ -28,9 +28,9 @@ func main() {
 		}
 	})
 
-	mux.Handle("/metrics", apiCfg.writeNumberOfRequests())
+	mux.Handle("GET /admin/metrics", apiCfg.writeNumberOfRequests())
 
-	mux.Handle("/reset", apiCfg.resetHitCount())
+	mux.Handle("POST /admin/reset", apiCfg.resetHitCount())
 
 	server := http.Server{
 		Addr:    ":8080",
@@ -49,8 +49,15 @@ func (cfg *apiConfig) middlewareMetricsInc(next http.Handler) http.Handler {
 
 func (cfg *apiConfig) writeNumberOfRequests() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		w.Write([]byte(fmt.Sprintf("Hits: %d", cfg.fileserverHits.Load())))
-		//w.Write(fmt.Appendf("Hits: %d", cfg.fileserverHits.Load()))
+		w.Header().Add("Content-Type", "text/html")
+
+		w.Write([]byte(fmt.Sprintf(`
+		<html>
+  <body>
+    <h1>Welcome, Chirpy Admin</h1>
+    <p>Chirpy has been visited %d times!</p>
+  </body>
+</html>`, cfg.fileserverHits.Load())))
 	})
 }
 
