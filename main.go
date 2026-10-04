@@ -29,8 +29,8 @@ func main() {
 	})
 
 	mux.Handle("GET /admin/metrics", apiCfg.writeNumberOfRequests())
-
 	mux.Handle("POST /admin/reset", apiCfg.resetHitCount())
+	mux.Handle("POST /api/validate_chirp", validateChirp())
 
 	server := http.Server{
 		Addr:    ":8080",
