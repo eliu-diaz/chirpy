@@ -17,14 +17,20 @@ import (
 type apiConfig struct {
 	fileserverHits atomic.Int32
 	db             *database.Queries
+	platform       string
 }
 
 func main() {
 	godotenv.Load()
 	dbURL := os.Getenv("DB_URL")
+	platform := os.Getenv("PLATFORM")
 
 	if dbURL == "" {
 		log.Fatal("DB_URL must be set")
+	}
+
+	if platform == "" {
+		log.Fatal("PLATFORM must be set")
 	}
 
 	db, err := sql.Open("postgres", dbURL)
@@ -37,12 +43,22 @@ func main() {
 	apiCfg := apiConfig{
 		fileserverHits: atomic.Int32{},
 		db:             dbQueries,
+		platform:       platform,
 	}
 
+	// ==============================
+	// Server Handlers
+	// ==============================
 	mux := http.NewServeMux()
 
 	handler := http.StripPrefix("/app/", http.FileServer(http.Dir(".")))
 	mux.Handle("/app/", apiCfg.middlewareMetricsInc(handler))
+
+	mux.Handle("GET /admin/metrics", apiCfg.writeNumberOfRequests())
+	mux.Handle("POST /admin/reset", apiCfg.resetHitCount())
+
+	mux.Handle("POST /api/validate_chirp", validateChirp())
+	mux.Handle("POST /api/users", apiCfg.createUser())
 
 	mux.HandleFunc("GET /api/healthz", func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Add("Content-Type", "text/plain; charset=utf-8")
@@ -52,10 +68,6 @@ func main() {
 			log.Fatal("An error occurred while writing the body")
 		}
 	})
-
-	mux.Handle("GET /admin/metrics", apiCfg.writeNumberOfRequests())
-	mux.Handle("POST /admin/reset", apiCfg.resetHitCount())
-	mux.Handle("POST /api/validate_chirp", validateChirp())
 
 	server := http.Server{
 		Addr:    ":8080",
@@ -88,6 +100,15 @@ func (cfg *apiConfig) writeNumberOfRequests() http.Handler {
 
 func (cfg *apiConfig) resetHitCount() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if cfg.platform == "dev" {
+			cfg.db.DeleteAllUsers(r.Context())
+		} else {
+			respondWithError(
+				w,
+				http.StatusForbidden,
+				"Cannot delete users while in non development mode!!!",
+				nil)
+		}
 		cfg.fileserverHits.Store(0)
 	})
 }
