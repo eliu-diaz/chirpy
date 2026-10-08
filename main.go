@@ -57,7 +57,7 @@ func main() {
 	mux.Handle("GET /admin/metrics", apiCfg.writeNumberOfRequests())
 	mux.Handle("POST /admin/reset", apiCfg.resetHitCount())
 
-	mux.Handle("POST /api/validate_chirp", validateChirp())
+	mux.Handle("POST /api/chirps", apiCfg.handleChirpCreation())
 	mux.Handle("POST /api/users", apiCfg.createUser())
 
 	mux.HandleFunc("GET /api/healthz", func(w http.ResponseWriter, r *http.Request) {
