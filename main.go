@@ -59,6 +59,7 @@ func main() {
 
 	mux.Handle("POST /api/chirps", apiCfg.handleChirpCreation())
 	mux.HandleFunc("GET /api/chirps", apiCfg.handleChirpRetrieval)
+	mux.HandleFunc("GET /api/chirps/{chirpID}", apiCfg.handleIndividualChirpRetrieval)
 	mux.Handle("POST /api/users", apiCfg.createUser())
 
 	mux.HandleFunc("GET /api/healthz", func(w http.ResponseWriter, r *http.Request) {
