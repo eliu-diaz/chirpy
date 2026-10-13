@@ -8,6 +8,7 @@ import (
 	"strings"
 	"time"
 
+	"chirpy/internal/auth"
 	"chirpy/internal/database"
 
 	"github.com/google/uuid"
@@ -27,7 +28,19 @@ func (cfg *apiConfig) handleChirpCreation() http.Handler {
 	}
 
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		chirp, userID, err := extractChirpAndUserID(r)
+		token, err := auth.GetBearerToken(r.Header)
+		if err != nil {
+			respondWithError(w, http.StatusUnauthorized, "No token provided", err)
+			return
+		}
+
+		userID, err := auth.ValidateJWT(token, cfg.secret)
+		if err != nil {
+			respondWithError(w, http.StatusUnauthorized, "Invalid token", err)
+			return
+		}
+
+		chirp, err := extractChirp(r)
 		if err != nil {
 			respondWithError(w, http.StatusInternalServerError, "Couldn't decode parameters for chirp extraction", err)
 			return
@@ -46,7 +59,7 @@ func (cfg *apiConfig) handleChirpCreation() http.Handler {
 		}
 
 		respondWithJSON(w, http.StatusCreated, response{
-			Chirp: Chirp{
+			Chirp{
 				ID:        createdChirp.ID,
 				CreatedAt: createdChirp.CreatedAt,
 				UpdatedAt: createdChirp.UpdatedAt,
@@ -57,25 +70,22 @@ func (cfg *apiConfig) handleChirpCreation() http.Handler {
 	})
 }
 
-func extractChirpAndUserID(r *http.Request) (string, uuid.UUID, error) {
+func extractChirp(r *http.Request) (string, error) {
 	type parameters struct {
-		Body   string    `json:"body"`
-		UserID uuid.UUID `json:"user_id"`
+		Body string `json:"body"`
 	}
 	var chirp string
-	var userID uuid.UUID
 
 	decoder := json.NewDecoder(r.Body)
 	params := parameters{}
 	err := decoder.Decode(&params)
 	if err != nil {
-		return chirp, userID, err
+		return chirp, err
 	}
 
 	chirp = params.Body
-	userID = params.UserID
 
-	return chirp, userID, nil
+	return chirp, nil
 }
 
 func chirpIsValid(chirp string) bool {
