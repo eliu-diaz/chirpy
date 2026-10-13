@@ -69,8 +69,8 @@ func main() {
 	mux.HandleFunc("GET /api/chirps/{chirpID}", apiCfg.handleIndividualChirpRetrieval)
 	mux.Handle("POST /api/users", apiCfg.createUser())
 	mux.HandleFunc("POST /api/login", apiCfg.loginUser)
-	mux.HandleFunc("POST /api/refresh", apiCfg.refreshToken)
-	mux.HandleFunc("POST /api/revoke", apiCfg.revokeToken)
+	mux.HandleFunc("POST /api/refresh", apiCfg.handleRefresh)
+	mux.HandleFunc("POST /api/revoke", apiCfg.handleRevoke)
 
 	mux.HandleFunc("GET /api/healthz", func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Add("Content-Type", "text/plain; charset=utf-8")
