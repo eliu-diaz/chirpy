@@ -12,14 +12,15 @@ import (
 	"github.com/google/uuid"
 )
 
-func (cfg *apiConfig) createUser() http.Handler {
-	type User struct {
-		ID        uuid.UUID `json:"id"`
-		CreatedAt time.Time `json:"created_at"`
-		UpdatedAt time.Time `json:"updated_at"`
-		Email     string    `json:"email"`
-	}
+type User struct {
+	ID          uuid.UUID `json:"id"`
+	CreatedAt   time.Time `json:"created_at"`
+	UpdatedAt   time.Time `json:"updated_at"`
+	Email       string    `json:"email"`
+	IsChirpyRed bool      `json:"is_chirpy_red"`
+}
 
+func (cfg *apiConfig) createUser() http.Handler {
 	type parameters struct {
 		Email    string `json:"email"`
 		Password string `json:"password"`
@@ -53,25 +54,17 @@ func (cfg *apiConfig) createUser() http.Handler {
 
 		respondWithJSON(w, http.StatusCreated, response{
 			User{
-				ID:        user.ID,
-				CreatedAt: user.CreatedAt,
-				UpdatedAt: user.UpdatedAt,
-				Email:     user.Email,
+				ID:          user.ID,
+				CreatedAt:   user.CreatedAt,
+				UpdatedAt:   user.UpdatedAt,
+				Email:       user.Email,
+				IsChirpyRed: user.IsChirpyRed,
 			},
 		})
 	})
 }
 
 func (cfg *apiConfig) loginUser(w http.ResponseWriter, r *http.Request) {
-	type User struct {
-		ID           uuid.UUID `json:"id"`
-		CreatedAt    time.Time `json:"created_at"`
-		UpdatedAt    time.Time `json:"updated_at"`
-		Email        string    `json:"email"`
-		AccessToken  string    `json:"token"`
-		RefreshToken string    `json:"refresh_token"`
-	}
-
 	type parameters struct {
 		Email    string `json:"email"`
 		Password string `json:"password"`
@@ -79,6 +72,8 @@ func (cfg *apiConfig) loginUser(w http.ResponseWriter, r *http.Request) {
 
 	type response struct {
 		User
+		AccessToken  string
+		RefreshToken string
 	}
 
 	decoder := json.NewDecoder(r.Body)
@@ -128,14 +123,15 @@ func (cfg *apiConfig) loginUser(w http.ResponseWriter, r *http.Request) {
 
 	if ok {
 		respondWithJSON(w, http.StatusOK, response{
-			User{
-				ID:           dbUser.ID,
-				CreatedAt:    dbUser.CreatedAt,
-				UpdatedAt:    dbUser.UpdatedAt,
-				Email:        dbUser.Email,
-				AccessToken:  accessToken,
-				RefreshToken: createdRefreshToken.Token,
+			User: User{
+				ID:          dbUser.ID,
+				CreatedAt:   dbUser.CreatedAt,
+				UpdatedAt:   dbUser.UpdatedAt,
+				Email:       dbUser.Email,
+				IsChirpyRed: dbUser.IsChirpyRed,
 			},
+			AccessToken:  accessToken,
+			RefreshToken: createdRefreshToken.Token,
 		})
 	} else {
 		respondWithError(w, http.StatusUnauthorized, "Incorrect password", nil)

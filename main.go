@@ -64,6 +64,8 @@ func main() {
 	mux.Handle("GET /admin/metrics", apiCfg.writeNumberOfRequests())
 	mux.Handle("POST /admin/reset", apiCfg.resetHitCount())
 
+	mux.HandleFunc("POST /api/polka/webhooks", apiCfg.handleWebhookEvent)
+
 	mux.Handle("POST /api/chirps", apiCfg.handleChirpCreation())
 	mux.HandleFunc("GET /api/chirps", apiCfg.handleChirpRetrieval)
 	mux.HandleFunc("GET /api/chirps/{chirpID}", apiCfg.handleIndividualChirpRetrieval)
