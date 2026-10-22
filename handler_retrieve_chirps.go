@@ -1,6 +1,7 @@
 package main
 
 import (
+	"chirpy/internal/database"
 	"fmt"
 	"log"
 	"net/http"
@@ -18,10 +19,29 @@ type chirp struct {
 }
 
 func (cfg *apiConfig) handleChirpRetrieval(w http.ResponseWriter, r *http.Request) {
-	dbChirps, err := cfg.db.RetrieveAllChirps(r.Context())
-	if err != nil {
-		respondWithError(w, http.StatusInternalServerError, "Could not retrieve chirps", err)
-		return
+	authorID := r.URL.Query().Get("author_id")
+	var dbChirps []database.Chirp
+	var dbGetChirpsError error
+
+	if authorID != "" {
+		authorUUID, parseError := uuid.Parse(authorID)
+		if parseError != nil {
+			respondWithError(w, http.StatusInternalServerError, "Could not parse author id from query parameters", parseError)
+			return
+		}
+
+		dbChirps, dbGetChirpsError = cfg.db.RetrieveChirpsByAuthorID(r.Context(), authorUUID)
+		if dbGetChirpsError != nil {
+			respondWithError(w, http.StatusNotFound, fmt.Sprintf("Could not retrieve chirps from author %v", authorUUID), dbGetChirpsError)
+			return
+		}
+
+	} else {
+		dbChirps, dbGetChirpsError = cfg.db.RetrieveAllChirps(r.Context())
+		if dbGetChirpsError != nil {
+			respondWithError(w, http.StatusInternalServerError, "Could not retrieve chirps", dbGetChirpsError)
+			return
+		}
 	}
 
 	chirps := []chirp{}
