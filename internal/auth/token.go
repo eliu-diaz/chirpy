@@ -21,3 +21,19 @@ func GetBearerToken(headers http.Header) (string, error) {
 		return "", fmt.Errorf("bearer token didn't have the right format, it contained: %q instead", token)
 	}
 }
+
+func GetApiKey(headers http.Header) (string, error) {
+	token := headers.Get("Authorization")
+
+	if token == "" {
+		return token, fmt.Errorf("api key wasn't present in headers %v", headers)
+	}
+
+	splittedToken := strings.Split(token, " ")
+
+	if len(splittedToken) > 1 {
+		return splittedToken[1], nil
+	} else {
+		return "", fmt.Errorf("api key didn't have the right format, it contained: %q instead", token)
+	}
+}

@@ -1,6 +1,7 @@
 package main
 
 import (
+	"chirpy/internal/auth"
 	"chirpy/internal/database"
 	"encoding/json"
 	"net/http"
@@ -22,6 +23,17 @@ func (cfg *apiConfig) handleWebhookEvent(w http.ResponseWriter, r *http.Request)
 	decoder := json.NewDecoder(r.Body)
 	decoder.Decode(&params)
 
+	key, err := auth.GetApiKey(r.Header)
+	if err != nil {
+		respondWithError(w, http.StatusUnauthorized, "Couldn't retrieve the Api key", err)
+		return
+	}
+
+	if key != cfg.polkaApiKey {
+		respondWithError(w, http.StatusUnauthorized, "Wrong Api key", nil)
+		return
+	}
+
 	switch params.Event {
 	case "user.upgraded":
 		// Returns the upgraded user, we don't need it now
@@ -36,5 +48,4 @@ func (cfg *apiConfig) handleWebhookEvent(w http.ResponseWriter, r *http.Request)
 		respondWithError(w, http.StatusNoContent, "Unsupported event", nil)
 		return
 	}
-
 }
