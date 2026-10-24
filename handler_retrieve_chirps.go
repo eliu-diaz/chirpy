@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"sort"
 	"time"
 
 	"github.com/google/uuid"
@@ -20,6 +21,7 @@ type chirp struct {
 
 func (cfg *apiConfig) handleChirpRetrieval(w http.ResponseWriter, r *http.Request) {
 	authorID := r.URL.Query().Get("author_id")
+	sortBy := r.URL.Query().Get("sort")
 	var dbChirps []database.Chirp
 	var dbGetChirpsError error
 
@@ -54,6 +56,15 @@ func (cfg *apiConfig) handleChirpRetrieval(w http.ResponseWriter, r *http.Reques
 			UserID:    dbChirp.UserID,
 		})
 	}
+
+	// If sorts query parameter is desc, we sort by descending order
+	sort.Slice(chirps, func(i, j int) bool {
+		if sortBy == "desc" {
+			return chirps[i].CreatedAt.After(chirps[j].CreatedAt)
+		} else {
+			return chirps[i].CreatedAt.Before(chirps[j].CreatedAt)
+		}
+	})
 
 	respondWithJSON(w, http.StatusOK, chirps)
 }
